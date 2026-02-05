@@ -141,6 +141,7 @@ def afficher_courbe(ville, temps, valeurs):
     plt.ylabel("Températures")
     plt.xlabel("Dates")
     plt.grid(True)
+    plt.savefig(f"meteo_de_{ville}")
     plt.show()
 
 afficher_courbe(city2, temps2, valeurs2)
