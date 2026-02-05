@@ -135,13 +135,12 @@ if weather_data2:
     print(temps2)
     print(valeurs2)
 
-def afficher_courbe(ville, temps, valeurs):
+def creer_courbe(ville, temps, valeurs):
     plt.plot(temps, valeurs, marker='o')
     plt.title(f"Météo de la ville de {ville}")
     plt.ylabel("Températures")
     plt.xlabel("Dates")
     plt.grid(True)
     plt.savefig(f"meteo_de_{ville}")
-    plt.show()
 
-afficher_courbe(city2, temps2, valeurs2)
+creer_courbe(city2, temps2, valeurs2)
