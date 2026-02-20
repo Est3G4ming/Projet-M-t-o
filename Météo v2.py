@@ -140,6 +140,8 @@ def creer_courbe(ville, temps, valeurs):
     plt.title(f"Météo de la ville de {ville}")
     plt.ylabel("Températures")
     plt.xlabel("Dates")
+    plt.xticks(rotation=-30, ha="left", fontsize=5)
+    plt.margins(0.01)
     plt.grid(True)
     plt.savefig(f"meteo_de_{ville}")
 
