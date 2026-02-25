@@ -136,13 +136,33 @@ if weather_data2:
     print(valeurs2)
 
 def creer_courbe(ville, temps, valeurs):
-    plt.plot(temps, valeurs, marker='o')
-    plt.title(f"Météo de la ville de {ville}")
-    plt.ylabel("Températures")
-    plt.xlabel("Dates")
-    plt.xticks(rotation=-30, ha="left", fontsize=5)
-    plt.margins(0.01)
+    """
+    IN: ville -> str: Nom de la ville
+        temps -> list: Date et horaire
+        valeurs -> list: Températures
+    
+    Description:
+        Créer un diagramme de la météo d'une
+        ville et l'enregistre en format png
+    """
+
+    #Simplification des horaires temps
+    for i in range(len(temps)):
+        temps[i] = temps[i][8:10] + "-" + temps[i][11:]
+    
+    #Création du diagramme
+    plt.figure(figsize=(15,6))
     plt.grid(True)
+    plt.plot(temps, valeurs, marker="o")
+    plt.title(f"Météo de la ville de {ville}")
+    plt.ylabel("Températures (C°)")
+    plt.xlabel("Horaires (J-H)")
+    plt.subplots_adjust(top=0.9, bottom=0.2)
+    plt.xticks(rotation=-30, ha="left")
+    plt.margins(0.0)
+    
+    #Enregistrement du diagramme
     plt.savefig(f"meteo_de_{ville}")
 
+creer_courbe(city1, temps1, valeurs1)
 creer_courbe(city2, temps2, valeurs2)
