@@ -1,4 +1,3 @@
-from asyncio import wait
 import time
 import requests
 import matplotlib.pyplot as plt
@@ -6,49 +5,28 @@ import matplotlib.pyplot as plt
 def get_weather(api_key, city):
     """
     Interroge l'API OpenWeatherMap pour obtenir les prévisions météo.
-
-    Paramètres
-    - api_key (str) : clé API OpenWeatherMap.
-    - city (str) : nom de la ville (ex. 'Paris' ou 'Lyon').
-
-    Retour
-    - dict : objet JSON de la réponse si tout s'est bien passé (status 200).
-    - None : en cas d'erreur ou si la requête ne peut pas être satisfaite.
-
-    Remarques
-    - L'URL utilisée est l'endpoint `forecast` qui renvoie des prévisions
-      toutes les 3 heures pour les prochains jours.
-    - La fonction gère plusieurs codes HTTP et affiche un message utile
-      pour l'utilisateur en cas d'erreur.
-    - En cas de `429 Too Many Requests`, la fonction attend 60 secondes
-      puis retente automatiquement (récursion simple). Cela évite une
-      exception due à l'utilisation incorrecte de `asyncio.wait`.
     """
     base_url = "http://api.openweathermap.org/data/2.5/forecast"
     params = {
-        'q': city,            # ville demandée
-        'appid': api_key,     # clé API
-        'units': 'metric',    # températures en °C
-        'lang': 'fr'          # langue des descriptions
+        'q': city,
+        'appid': api_key,
+        'units': 'metric',
+        'lang': 'fr'
     }
 
-    # Effectue la requête HTTP GET vers l'API
     response = requests.get(base_url, params=params)
 
-    # Code 200 : succès, on renvoie le JSON
     if response.status_code == 200:
         return response.json()
 
-    # Gestion des erreurs utilisateur/serveur courantes
     if response.status_code == 404:
-        print("Ville non trouvée.")
+        print(f"Ville '{city}' non trouvée.")
         return None
 
     if response.status_code == 401:
         print("Clé API invalide.")
         return None
 
-    # Trop de requêtes : on attend un peu puis on retente
     if response.status_code == 429:
         print("Limite de requête atteinte. Attente de 60 secondes avant réessai.")
         time.sleep(60)
@@ -66,49 +44,19 @@ def get_weather(api_key, city):
         print("Service indisponible.")
         return None
 
-    # Pour tout autre code inattendu
     print(f"Erreur lors de la récupération des données météorologiques: {response.status_code}")
     return None
 
 
-# Exemple d'utilisation basique
-# Remplacez `api_key` par votre propre clé si nécessaire.
-api_key = "5313de5c4de40cb985381e46d6b9fea8"
-city1 = "Paris"
-city2 = "Lyon"
-
-# Récupération des données pour deux villes
-weather_data1 = get_weather(api_key, city1)
-weather_data2 = get_weather(api_key, city2)
-
-
 def extract_weather_data(weather_data):
     """
-    Extrait deux listes à partir du JSON de prévision OpenWeatherMap :
-    - `temps` : liste d'horodatages (chaînes) fournis par `dt_txt`.
-    - `valeurs` : liste des températures en °C pour chaque horodatage.
-
-    Structure attendue de `weather_data` (extrait) :
-    {
-        'list': [
-            {
-                'dt_txt': '2026-02-05 12:00:00',
-                'main': {'temp': 5.0},
-                ...
-            },
-            ...
-        ]
-    }
-
-    Retourne deux listes vides si `weather_data` est None.
+    Extrait les horodatages et températures du JSON de prévision.
     """
-    temps = []     # horodatages (ex. '2026-02-05 12:00:00')
-    valeurs = []   # températures correspondantes (float en °C)
+    temps = []
+    valeurs = []
 
     if weather_data:
-        # `list` contient les prévisions (généralement toutes les 3 heures)
         for forecast in weather_data.get('list', []):
-            # Sécurise l'accès aux champs attendus
             dt = forecast.get('dt_txt')
             temp = None
             main = forecast.get('main')
@@ -122,18 +70,17 @@ def extract_weather_data(weather_data):
     return temps, valeurs
 
 
-# Extraction et affichage des données pour chaque ville (si disponibles)
-if weather_data1:
-    temps1, valeurs1 = extract_weather_data(weather_data1)
-    print(f"Prévisions pour {city1}:")
-    print(temps1)
-    print(valeurs1)
+def formater_date(date_str):
+    """
+    Convertit '2026-02-27 18:00:00' en '27/02/26-18:00'
+    """
+    annee = date_str[2:4]
+    mois = date_str[5:7]
+    jour = date_str[8:10]
+    heure = date_str[11:16]
+    
+    return f"{jour}/{mois}/{annee}-{heure}"
 
-if weather_data2:
-    temps2, valeurs2 = extract_weather_data(weather_data2)
-    print(f"Prévisions pour {city2}:")
-    print(temps2)
-    print(valeurs2)
 
 def creer_courbe(ville, temps, valeurs):
     """
@@ -145,24 +92,124 @@ def creer_courbe(ville, temps, valeurs):
         Créer un diagramme de la météo d'une
         ville et l'enregistre en format png
     """
-
-    #Simplification des horaires temps
-    for i in range(len(temps)):
-        temps[i] = temps[i][8:10] + "-" + temps[i][11:]
     
-    #Création du diagramme
-    plt.figure(figsize=(15,6))
-    plt.grid(True)
-    plt.plot(temps, valeurs, marker="o")
-    plt.title(f"Météo de la ville de {ville}")
-    plt.ylabel("Températures (C°)")
-    plt.xlabel("Horaires (J-H)")
-    plt.subplots_adjust(top=0.9, bottom=0.2)
-    plt.xticks(rotation=-30, ha="left")
-    plt.margins(0.0)
+    # Formatage des dates
+    temps_formates = [formater_date(t) for t in temps]
     
-    #Enregistrement du diagramme
-    plt.savefig(f"meteo_de_{ville}")
+    # Calcul de la température maximale uniquement
+    temp_max = max(valeurs)
+    idx_max = valeurs.index(temp_max)
+    
+    # Création du diagramme
+    fig, ax = plt.subplots(figsize=(16, 7))
+    
+    # Grille en arrière-plan
+    ax.grid(True, alpha=0.3, zorder=0)
+    
+    # Ligne horizontale pour le max (en arrière-plan)
+    ax.axhline(y=temp_max, color='red', linestyle='--', alpha=0.4, zorder=1)
+    
+    # Courbe principale
+    ax.plot(temps_formates, valeurs, marker="o", linewidth=2, markersize=4, 
+            color='#1f77b4', zorder=3)
+    
+    # Marqueur pour la température maximale
+    ax.plot(idx_max, temp_max, 'ro', markersize=10, zorder=4)
+    ax.annotate(
+        f'MAX: {temp_max:.1f}°C',
+        xy=(idx_max, temp_max),
+        xytext=(idx_max + 2, temp_max + 1),
+        fontsize=10,
+        fontweight='bold',
+        color='red',
+        bbox=dict(boxstyle='round,pad=0.3', facecolor='lightyellow', alpha=0.8),
+        arrowprops=dict(arrowstyle='->', color='red'),
+        zorder=5
+    )
+    
+    # Récupération des yticks générés automatiquement
+    ax.autoscale()
+    fig.canvas.draw()
+    yticks_originaux = [tick for tick in ax.get_yticks()]
+    
+    # Filtrer les yticks pour éviter la superposition avec temp_max
+    seuil = (max(valeurs) - min(valeurs)) * 0.08  # 8% de la plage
+    yticks_filtres = [y for y in yticks_originaux if abs(y - temp_max) > seuil]
+    
+    # Ajouter temp_max aux yticks
+    yticks_nouveaux = sorted(yticks_filtres + [temp_max])
+    ax.set_yticks(yticks_nouveaux)
+    
+    # Colorer le label de temp_max en rouge
+    ytick_labels = ax.get_yticklabels()
+    for i, tick_val in enumerate(yticks_nouveaux):
+        if tick_val == temp_max:
+            ytick_labels[i].set_color('red')
+            ytick_labels[i].set_fontweight('bold')
+    
+    # Configuration du graphique
+    ax.set_title(f"Prévisions météo - {ville}", fontsize=14, fontweight='bold')
+    ax.set_ylabel("Températures (°C)", fontsize=11)
+    ax.set_xlabel("Date et heure (JJ/MM/AA-HH:MM)", fontsize=11)
+    
+    # Légende en arrière-plan (zorder bas)
+    legend = ax.legend(
+        [plt.Line2D([0], [0], color='red', linestyle='--', alpha=0.4)],
+        [f'Max: {temp_max:.1f}°C'],
+        loc='upper right',
+        framealpha=0.5,  # Transparence de la légende
+        facecolor='white'
+    )
+    legend.set_zorder(0)  # Légende en arrière-plan
+    
+    # Rotation des étiquettes de dates
+    plt.xticks(rotation=45, ha="right", fontsize=8)
+    
+    # Afficher une étiquette sur deux
+    for i, label in enumerate(ax.xaxis.get_ticklabels()):
+        if i % 2 != 0:
+            label.set_visible(False)
+    
+    ax.margins(x=0.02)
+    plt.tight_layout()
+    
+    # Enregistrement
+    nom_fichier = f"meteo_de_{ville.replace(' ', '_')}.png"
+    plt.savefig(nom_fichier, dpi=150)
+    plt.close()
+    
+    print(f"✓ Graphique sauvegardé : {nom_fichier}")
+    print(f"  → Température max: {temp_max:.1f}°C")
 
-creer_courbe(city1, temps1, valeurs1)
-creer_courbe(city2, temps2, valeurs2)
+
+# ====================
+# PROGRAMME PRINCIPAL
+# ====================
+
+api_key = "5313de5c4de40cb985381e46d6b9fea8"
+
+# Liste des villes
+villes = ["Paris", "Lyon", "Toulouse", "Marseille", "Lille"]
+
+print("=" * 50)
+print("   RÉCUPÉRATION DES PRÉVISIONS MÉTÉO")
+print("=" * 50)
+
+for ville in villes:
+    print(f"\n📍 Traitement de {ville}...")
+    
+    weather_data = get_weather(api_key, ville)
+    
+    if weather_data:
+        temps, valeurs = extract_weather_data(weather_data)
+        
+        if temps and valeurs:
+            creer_courbe(ville, temps, valeurs)
+        else:
+            print(f"  ✗ Pas de données disponibles pour {ville}")
+    else:
+        print(f"  ✗ Échec de récupération pour {ville}")
+
+print("\n" + "=" * 50)
+print("   TRAITEMENT TERMINÉ")
+print("=" * 50)
